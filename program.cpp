@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <Zydis/Zydis.h>
+
 PVOID INJ_ReadFile(LPCCH szFileName, PSIZE_T pFileSize)
 {
 	FILE* pFileHandle = fopen(szFileName, "rb");
@@ -60,6 +62,18 @@ UINT_PTR Internal_ResolveRva(PVOID FileBlock, DWORD dwRva)
 
 #define RVA_AS(_tt, _coffhdr, _rva) ((_tt)(Internal_ResolveRva(_coffhdr, _rva) + (UINT_PTR)_coffhdr))
 
+BOOL ExtractSyscallFromExport(PVOID FunctionAddress, PUINT pSyscallNumber)
+{
+	PCHAR Data = (PCHAR)FunctionAddress;
+	if ( *(DWORD*)(Data) == 0xB8D18B4C )
+	{
+		UINT SyscallNumber = *(DWORD*)(Data + 4);
+		*pSyscallNumber = SyscallNumber;
+		return TRUE;
+	}
+	return FALSE;
+}
+
 int main(int argc, char* argv[])
 {
 	//if (argc <= 1)
@@ -76,6 +90,9 @@ int main(int argc, char* argv[])
 	PIMAGE_NT_HEADERS pNtHdr;
 	PIMAGE_OPTIONAL_HEADER pOptionalHdr;
 	PIMAGE_FILE_HEADER pFileHdr;
+
+	PCHAR IsAlreadyPresent[1024];
+	ZeroMemory(&IsAlreadyPresent, sizeof(IsAlreadyPresent));
 
 	pDosHdr = (PIMAGE_DOS_HEADER)FileBlock;
 	pNtHdr = (PIMAGE_NT_HEADERS)((PCHAR)pDosHdr + pDosHdr->e_lfanew);
@@ -113,12 +130,36 @@ int main(int argc, char* argv[])
 		PDWORD ExportNamePointerTable = RVA_AS(PDWORD, FileBlock, ExportDirectory->AddressOfNames);
 		PDWORD ExportFunctionPointerTable = RVA_AS(PDWORD, FileBlock, ExportDirectory->AddressOfFunctions);
 		PWORD ExportOrdinalPointerTable = RVA_AS(PWORD, FileBlock, ExportDirectory->AddressOfNameOrdinals);
+
+		UINT LastSyscallNumber = 0;
 		for (UINT i = 0; i < ExportDirectory->NumberOfNames; ++i)
 		{
 			PCHAR Name = RVA_AS(PCHAR, FileBlock, ExportNamePointerTable[i]);
 			WORD Ordinal = ExportOrdinalPointerTable[i];
 			PVOID FunctionAddress = RVA_AS(PVOID, FileBlock, ExportFunctionPointerTable[Ordinal]);
-			printf("%s is at %llX\n", Name, ExportFunctionPointerTable[Ordinal]);
+
+			UINT SyscallNumber;
+			if (ExtractSyscallFromExport(FunctionAddress, &SyscallNumber))
+			{
+				if (IsAlreadyPresent[SyscallNumber])
+					continue;
+
+				// print here for in order alphabetically
+
+				IsAlreadyPresent[SyscallNumber] = Name;
+				if (SyscallNumber > LastSyscallNumber)
+					LastSyscallNumber = SyscallNumber;
+			}
+		}
+
+		for (UINT i = 0; i < LastSyscallNumber; ++i)
+		{
+			// print here for in order numerically
+			
+			if (IsAlreadyPresent[i])
+				printf("%u: %s\n", i, IsAlreadyPresent[i]);
+			else
+				printf("%u: (null)\n", i);
 		}
 	}
 
