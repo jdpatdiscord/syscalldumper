@@ -1,0 +1,9 @@
+﻿  program.c
+C:\Users\user\Documents\GitHub\SyscallDumper\program.c(121,11): warning C4477: 'printf' : format string '%llX' requires an argument of type 'unsigned __int64', but variadic argument 2 has type 'DWORD'
+C:\Users\user\Documents\GitHub\SyscallDumper\program.c(121,11): message : consider using '%lX' in the format string
+  Generating code
+  1 of 6 functions (16.7%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    0 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  SyscallDumper.vcxproj -> C:\Users\user\Documents\GitHub\SyscallDumper\x64\Release\SyscallDumper.exe
