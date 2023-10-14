@@ -1,1 +1,0 @@
-C:\Users\user\Documents\GitHub\SyscallDumper\x64\Release\SyscallDumper.exe
