@@ -161,7 +161,8 @@ BOOL ExtractSyscallFromExportAMD64(PVOID FunctionAddress, PUINT pSyscallNumber)
 BOOL ExtractSyscallFromExportI386(PVOID FunctionAddress, PUINT pSyscallNumber)
 {
 	PUCHAR Data = (PUCHAR)FunctionAddress;
-	if (*(Data) == 0xB8 && *(DWORD*)(Data + 5) == 0xFE0300BA)
+	DWORD Misc = *(DWORD*)(Data + 5);
+	if (*(Data) == 0xB8 && (Misc == 0xFE0300BA || Misc == 0x0424548D))
 	{
 		UINT SyscallNumber = *(DWORD*)(Data + 1);
 		*pSyscallNumber = SyscallNumber;
